@@ -1,0 +1,15 @@
+# 患者・スタッフの写真は絶対に公開リポジトリへ含めない
+testdata/
+*.jpg
+*.jpeg
+*.heic
+*.HEIC
+*.png
+!public/icons/*.png
+.DS_Store
+node_modules/
+dist/
+tools/validation/.venv/
+tools/validation/models/
+tools/validation/out/
+.claude/

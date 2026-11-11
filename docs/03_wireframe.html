@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MonitorCollage ワイヤーフレーム</title>
+<style>
+:root{
+  --bg:#f3f3f5; --card:#fff; --ink:#1d1d1f; --sub:#6e6e73; --line:#d2d2d7;
+  --accent:#0a84ff; --warn:#ff9f0a; --cell:#111; --face:#c9b3a4; --blur:rgba(255,255,255,.55);
+  --phone:#fff; --frame:#1d1d1f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111113; --card:#1c1c1e; --ink:#f5f5f7; --sub:#a1a1a6; --line:#3a3a3c;
+    --phone:#1c1c1e; --frame:#48484a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111113; --card:#1c1c1e; --ink:#f5f5f7; --sub:#a1a1a6; --line:#3a3a3c;
+  --phone:#1c1c1e; --frame:#48484a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.55}
+header.page{max-width:1200px;margin:0 auto;padding:28px 16px 8px}
+header.page h1{font-size:22px;margin:0 0 6px}
+header.page p{margin:0;color:var(--sub);font-size:14px}
+.flow{max-width:1200px;margin:0 auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px}
+.screen h2{font-size:15px;margin:0 0 8px}
+.screen h2 span{display:inline-block;background:var(--ink);color:var(--bg);border-radius:999px;width:22px;height:22px;text-align:center;font-size:13px;line-height:22px;margin-right:6px}
+.phone{background:var(--phone);border:3px solid var(--frame);border-radius:34px;padding:14px 12px 18px;min-height:560px;display:flex;flex-direction:column;gap:12px;max-width:340px}
+.bar{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:600;padding:4px 4px 0}
+.bar .link{color:var(--accent);font-weight:400;font-size:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0;aspect-ratio:16/9;background:var(--cell);border-radius:6px;overflow:hidden}
+.slot{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.slot.empty{border:1.5px dashed #666;margin:3px;border-radius:4px;color:#bbb;font-size:12px;flex-direction:column;gap:2px}
+.slot.empty b{font-size:20px;line-height:1;color:#ddd}
+.slot .tag{position:absolute;left:4px;top:3px;font-size:9px;color:#aaa}
+.slot.sel{outline:2px solid var(--accent);outline-offset:-2px}
+.slot .warn{position:absolute;right:3px;bottom:3px;background:var(--warn);color:#000;font-size:9px;border-radius:4px;padding:0 4px}
+.row{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.row .sub{color:var(--sub);font-size:13px}
+.toggle{width:44px;height:26px;border-radius:999px;background:#34c759;position:relative;flex:none}
+.toggle::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.toggle.off{background:var(--line)}.toggle.off::after{right:auto;left:3px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12px}
+.seg i{font-style:normal;padding:4px 10px}.seg i.on{background:var(--ink);color:var(--bg)}
+.btn{display:block;text-align:center;border-radius:12px;padding:13px;font-size:15px;font-weight:600;background:var(--accent);color:#fff}
+.btn.dis{background:var(--line);color:var(--sub)}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line);font-weight:500}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btns .btn{font-size:13px;padding:10px 6px}
+.spacer{flex:1}
+.note{font-size:12px;color:var(--sub);padding:0 4px}
+.big{aspect-ratio:16/9;background:var(--cell);border-radius:6px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.guide{position:absolute;left:0;right:0;border-top:1px dashed rgba(10,132,255,.8);font-size:9px;color:#5ac8fa;padding-left:4px}
+.ann{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px;margin-top:10px;max-width:340px}
+.ann ul{margin:0;padding-left:18px}.ann li{margin:2px 0}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.sheet .item{display:flex;gap:10px;align-items:center;font-size:14px;padding:8px;border-radius:8px}
+.sheet .item.hl{background:rgba(10,132,255,.12);font-weight:600}
+.slider{height:4px;background:var(--line);border-radius:4px;position:relative;margin:8px 0 2px}
+.slider::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--v);background:var(--accent);border-radius:4px}
+.slider::after{content:"";position:absolute;left:calc(var(--v) - 9px);top:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.setting{padding:8px 4px;border-bottom:1px solid var(--line);font-size:14px}
+.progress{height:6px;background:var(--line);border-radius:6px;overflow:hidden}
+.progress div{width:70%;height:100%;background:var(--accent)}
+footer{max-width:1200px;margin:0 auto;padding:8px 16px 40px;color:var(--sub);font-size:12px}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>MonitorCollage ワイヤーフレーム（v0.1）</h1>
+  <p>iPhone の縦持ちを想定。グレーの部分は見た目の仮置きで、色やデザインはまだ決めていません。</p>
+</header>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="front" viewBox="0 0 160 90"><ellipse cx="80" cy="44" rx="20" ry="26" fill="#c9b3a4"/><rect x="58" y="22" width="44" height="8" rx="3" fill="#222"/><path d="M40 90 Q80 66 120 90Z" fill="#2a2a2a"/></symbol>
+    <symbol id="oblique" viewBox="0 0 160 90"><ellipse cx="82" cy="44" rx="18" ry="26" fill="#c9b3a4"/><path d="M96 46 l6 4 -6 2z" fill="#c9b3a4"/><rect x="62" y="22" width="40" height="8" rx="3" fill="#222"/><path d="M44 90 Q82 66 120 90Z" fill="#2a2a2a"/></symbol>
+    <symbol id="aori" viewBox="0 0 160 90"><ellipse cx="80" cy="34" rx="22" ry="20" fill="#c9b3a4"/><rect x="74" y="54" width="12" height="22" fill="#c9b3a4"/><path d="M40 90 Q80 74 120 90Z" fill="#2a2a2a"/></symbol>
+    <symbol id="profile" viewBox="0 0 160 90"><ellipse cx="78" cy="44" rx="17" ry="26" fill="#c9b3a4"/><path d="M93 40 l9 6 -8 3z" fill="#c9b3a4"/><path d="M62 28 q-14 10 -10 34" stroke="#6b4b36" stroke-width="5" fill="none"/><rect x="62" y="22" width="34" height="8" rx="3" fill="#222"/><path d="M46 90 Q80 66 116 90Z" fill="#2a2a2a"/></symbol>
+  </defs>
+</svg>
+
+<main class="flow">
+
+  <!-- 1 -->
+  <section class="screen">
+    <h2><span>1</span>起動直後（写真を選ぶ）</h2>
+    <div class="phone">
+      <div class="bar">モニター写真作成<span class="link">⚙︎ 設定</span></div>
+      <div class="grid">
+        <div class="slot empty"><b>＋</b>① 正面</div>
+        <div class="slot empty"><b>＋</b>② 斜め</div>
+        <div class="slot empty"><b>＋</b>③ あおり</div>
+        <div class="slot empty"><b>＋</b>④ 横顔</div>
+      </div>
+      <div class="note">枠をタップして、写真を1枚ずつ選びます。</div>
+      <div class="row">目元ぼかし<div class="toggle"></div></div>
+      <div class="row">出力サイズ<div class="seg"><i class="on">16:9</i><i>3:2</i></div></div>
+      <div class="spacer"></div>
+      <div class="btn dis">保存する</div>
+      <div class="note">写真はこの iPhone の中だけで処理し、外部には送信しません。</div>
+    </div>
+    <div class="ann"><ul>
+      <li>4つの枠は<b>位置固定</b>（左上=正面 / 右上=斜め / 左下=あおり / 右下=横顔）</li>
+      <li>枠をタップ → 写真アプリの選択画面が開く → 1枚選ぶ</li>
+      <li>4枚そろうまで「保存する」は押せない</li>
+    </ul></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="screen">
+    <h2><span>2</span>4枚選んだ後（自動配置済み）</h2>
+    <div class="phone">
+      <div class="bar">モニター写真作成<span class="link">やり直す</span></div>
+      <div class="grid">
+        <div class="slot"><svg width="100%" height="100%" viewBox="0 0 160 90"><use href="#front"/><rect x="66" y="38" width="28" height="7" rx="3.5" fill="rgba(255,255,255,.55)"/></svg></div>
+        <div class="slot"><svg width="100%" height="100%" viewBox="0 0 160 90"><use href="#oblique"/><rect x="72" y="38" width="26" height="7" rx="3.5" fill="rgba(255,255,255,.55)"/></svg></div>
+        <div class="slot"><svg width="100%" height="100%" viewBox="0 0 160 90"><use href="#aori"/><rect x="66" y="22" width="28" height="6" rx="3" fill="rgba(255,255,255,.55)"/></svg><span class="warn">要確認</span></div>
+        <div class="slot"><svg width="100%" height="100%" viewBox="0 0 160 90"><use href="#profile"/><rect x="84" y="38" width="12" height="7" rx="3.5" fill="rgba(255,255,255,.55)"/></svg></div>
+      </div>
+      <div class="note">枠をタップすると、その写真を調整できます。</div>
+      <div class="row">目元ぼかし<div class="toggle"></div></div>
+      <div class="row">出力サイズ<div class="seg"><i class="on">16:9</i><i>3:2</i></div></div>
+      <div class="spacer"></div>
+      <div class="btn">保存する</div>
+    </div>
+    <div class="ann"><ul>
+      <li>選んだ瞬間に顔を検出し、<b>頭頂部〜顎先が入る大きさ・位置</b>へ自動で配置</li>
+      <li>4枚の顔の大きさを自動でそろえる</li>
+      <li>目元ぼかしは自動で入る（白い帯の部分）</li>
+      <li>顔や目をうまく検出できなかった枠には「<b>要確認</b>」マークを出す</li>
+      <li>問題なければ、ここで「保存する」を押せば完了</li>
+    </ul></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="screen">
+    <h2><span>3</span>枠の調整（タップした枠）</h2>
+    <div class="phone">
+      <div class="bar"><span class="link">キャンセル</span>③ あおり<span class="link"><b>完了</b></span></div>
+      <div class="big">
+        <svg width="100%" height="100%" viewBox="0 0 160 90"><use href="#aori"/>
+          <ellipse cx="72" cy="25" rx="8" ry="4" fill="rgba(255,255,255,.55)" stroke="#0a84ff" stroke-dasharray="2 1.5" stroke-width=".8"/>
+          <ellipse cx="88" cy="25" rx="8" ry="4" fill="rgba(255,255,255,.55)" stroke="#0a84ff" stroke-dasharray="2 1.5" stroke-width=".8"/>
+        </svg>
+        <div class="guide" style="top:12%">頭頂部の目安</div>
+        <div class="guide" style="top:88%">顎先の目安</div>
+      </div>
+      <div class="note">ピンチで拡大・縮小、ドラッグで位置を移動。<br>ぼかし（点線の丸）はドラッグで移動、ピンチで大きさ変更。</div>
+      <div class="row">この枠の目元ぼかし<div class="toggle"></div></div>
+      <div class="btns">
+        <div class="btn ghost">＋ ぼかしを追加</div>
+        <div class="btn ghost">選んだぼかしを削除</div>
+        <div class="btn ghost">自動配置に戻す</div>
+        <div class="btn ghost">写真を選び直す</div>
+      </div>
+      <div class="spacer"></div>
+    </div>
+    <div class="ann"><ul>
+      <li>自動配置がずれたときだけ使う画面</li>
+      <li>青い点線は「ここに頭頂部・顎先が来ると、ほかの枠とそろう」目安</li>
+      <li>あおり・横顔は目の検出が外れやすいので、ぼかしを指で動かせるようにする</li>
+    </ul></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="screen">
+    <h2><span>4</span>保存</h2>
+    <div class="phone">
+      <div class="bar">保存</div>
+      <div class="grid" style="opacity:.6">
+        <div class="slot"><svg width="100%" height="100%" viewBox="0 0 160 90"><use href="#front"/></svg></div>
+        <div class="slot"><svg width="100%" height="100%" viewBox="0 0 160 90"><use href="#oblique"/></svg></div>
+        <div class="slot"><svg width="100%" height="100%" viewBox="0 0 160 90"><use href="#aori"/></svg></div>
+        <div class="slot"><svg width="100%" height="100%" viewBox="0 0 160 90"><use href="#profile"/></svg></div>
+      </div>
+      <div class="note">高画質（3840×2160）で書き出し中…</div>
+      <div class="progress"><div></div></div>
+      <div class="spacer"></div>
+      <div class="sheet">
+        <div class="note">iPhone の共有メニュー</div>
+        <div class="item">AirDrop</div>
+        <div class="item">LINE</div>
+        <div class="item hl">⬇︎ 画像を保存</div>
+        <div class="item">“ファイル”に保存</div>
+      </div>
+    </div>
+    <div class="ann"><ul>
+      <li>書き出しが終わると、iPhone の共有メニューが自動で開く</li>
+      <li>「画像を保存」で写真アプリに保存（Web アプリの仕様で、この1手間が入る）</li>
+      <li>保存後は「新しく作る」で画面1に戻る（写真はアプリ内に残さない）</li>
+    </ul></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="screen">
+    <h2><span>5</span>設定</h2>
+    <div class="phone">
+      <div class="bar"><span class="link">‹ 戻る</span>設定<span></span></div>
+      <div class="setting">出力サイズ（初期値）
+        <div style="margin-top:6px" class="seg"><i class="on">16:9（3840×2160）</i><i>3:2（4800×3200）</i></div></div>
+      <div class="setting">顔の大きさ<div class="slider" style="--v:62%"></div><span class="note">枠の高さに対する顔の大きさ</span></div>
+      <div class="setting">ぼかしの強さ<div class="slider" style="--v:55%"></div></div>
+      <div class="setting">ぼかしの範囲（大きさ）<div class="slider" style="--v:45%"></div></div>
+      <div class="row">目元ぼかし（初期値）<div class="toggle"></div></div>
+      <div class="spacer"></div>
+      <div class="note">設定はこの iPhone に保存され、次回も同じ設定で始まります。</div>
+    </div>
+    <div class="ann"><ul>
+      <li>顔の大きさ・ぼかしの強さは、試作を見ながら初期値を決める</li>
+      <li>普段は触らない想定の画面</li>
+    </ul></div>
+  </section>
+
+</main>
+<footer>画面の流れ: ① 写真を選ぶ → ② 自動配置を確認 →（必要なら ③ 調整）→ ④ 保存</footer>
+</body>
+</html>
