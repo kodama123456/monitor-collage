@@ -3,7 +3,7 @@
  * 技術検証 tools/validation/detect.py と同じ考え方:
  *  - 顔検出: 顔の位置（全角度で安定）
  *  - 顔ランドマーク: 目の輪郭・顎先（横顔は取れないことがある）
- *  - 姿勢推定: 目のおおよその位置（横顔の予備）
+ *  - 顔検出の目の点: 目のおおよその位置（横顔の予備）
  *  - 人物領域: 頭頂部の推定と、背景を真っ黒にするためのマスク
  */
 import {
@@ -11,7 +11,6 @@ import {
   FaceLandmarker,
   FilesetResolver,
   ImageSegmenter,
-  PoseLandmarker,
 } from '@mediapipe/tasks-vision';
 
 export interface Ellipse {
@@ -47,37 +46,77 @@ export interface Analysis {
 let tasks: {
   face: FaceDetector;
   lm: FaceLandmarker;
-  pose: PoseLandmarker;
   seg: ImageSegmenter;
 } | null = null;
 
-export async function loadModels(base: string) {
-  if (tasks) return;
-  const fileset = await FilesetResolver.forVisionTasks(base + 'wasm');
-  const opt = (file: string) => ({ modelAssetPath: base + 'models/' + file, delegate: 'CPU' as const });
-  const [face, lm, pose, seg] = await Promise.all([
+/**
+ * 解析モデルの置き場所。
+ * GitHub Pages は日本からの配信が遅いことがあるため、高速な配信元（Google / unpkg）を優先し、
+ * 失敗したときはアプリと同じ場所（GitHub Pages）から読み込む。
+ * ※ 読み込むのはモデル（プログラム）だけ。写真はどこにも送信しない。
+ */
+const MP_VERSION = '1.2.2';
+const GCS = 'https://storage.googleapis.com/mediapipe-models/';
+export function modelSources(base: string) {
+  return [
+    {
+      wasm: `https://unpkg.com/@mediapipe/tasks-vision@${MP_VERSION}/wasm`,
+      model: {
+        face: GCS + 'face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
+        lm: GCS + 'face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+        seg: GCS + 'image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite',
+      },
+    },
+    {
+      wasm: base + 'wasm',
+      model: {
+        face: base + 'models/blaze_face_short_range.tflite',
+        lm: base + 'models/face_landmarker.task',
+        seg: base + 'models/selfie_segmenter.tflite',
+      },
+    },
+  ];
+}
+
+export type ModelSource = ReturnType<typeof modelSources>[number];
+
+/** 読み込みに使った配信元を返す（オフライン保存に使う） */
+export async function loadModels(base: string): Promise<ModelSource | null> {
+  if (tasks) return null;
+  let lastErr: unknown;
+  for (const src of modelSources(base)) {
+    try {
+      tasks = await createTasks(src.wasm, src.model);
+      return src;
+    } catch (e) {
+      console.warn('モデルの読み込みに失敗。別の配信元を試します', src.wasm, e);
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
+async function createTasks(wasm: string, m: { face: string; lm: string; seg: string }) {
+  const fileset = await FilesetResolver.forVisionTasks(wasm);
+  const opt = (path: string) => ({ modelAssetPath: path, delegate: 'CPU' as const });
+  const [face, lm, seg] = await Promise.all([
     FaceDetector.createFromOptions(fileset, {
-      baseOptions: opt('blaze_face_short_range.tflite'),
+      baseOptions: opt(m.face),
       minDetectionConfidence: 0.3,
     }),
     FaceLandmarker.createFromOptions(fileset, {
-      baseOptions: opt('face_landmarker.task'),
+      baseOptions: opt(m.lm),
       numFaces: 1,
       minFaceDetectionConfidence: 0.3,
       minFacePresenceConfidence: 0.3,
     }),
-    PoseLandmarker.createFromOptions(fileset, {
-      baseOptions: opt('pose_landmarker_lite.task'),
-      minPoseDetectionConfidence: 0.3,
-      minPosePresenceConfidence: 0.3,
-    }),
     ImageSegmenter.createFromOptions(fileset, {
-      baseOptions: opt('selfie_segmenter.tflite'),
+      baseOptions: opt(m.seg),
       outputConfidenceMasks: true,
       outputCategoryMask: false,
     }),
   ]);
-  tasks = { face, lm, pose, seg };
+  return { face, lm, seg };
 }
 
 const EYE_A = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246];
@@ -130,7 +169,6 @@ export function analyze(src: HTMLCanvasElement): Analysis {
   // 顔
   const fd = tasks.face.detect(small).detections[0];
   const fl = tasks.lm.detect(small).faceLandmarks[0];
-  const po = tasks.pose.detect(small).landmarks[0];
 
   let fx: number, fy: number, fw: number, fh: number;
   const faceFound = !!fd?.boundingBox;
@@ -194,10 +232,10 @@ export function analyze(src: HTMLCanvasElement): Analysis {
         ry: Math.max(ey1 - ey0, w * 0.45) * 1.3 * up,
       });
     }
-  } else if (po && faceFound) {
-    // 横顔などで目の輪郭が取れない → 姿勢推定のおおよその位置（要確認）
-    const ex = ((po[2].x + po[5].x) / 2) * aw;
-    const ey = ((po[2].y + po[5].y) / 2) * ah;
+  } else if (fd && fd.keypoints.length >= 2) {
+    // 横顔などで目の輪郭が取れない → 顔検出の目の点からおおよその位置（要確認）
+    const ex = ((fd.keypoints[0].x + fd.keypoints[1].x) / 2) * aw;
+    const ey = ((fd.keypoints[0].y + fd.keypoints[1].y) / 2) * ah - fh * 0.04;
     eyes.push({ cx: ex * up, cy: ey * up, rx: fw * 0.17 * up, ry: fw * 0.1 * up });
     needsCheck = true;
   } else {

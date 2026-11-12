@@ -1,20 +1,10 @@
-// オフライン対応: 一度読み込んだファイル（アプリ本体・解析モデル）を端末に保存して再利用する。
+// オフライン対応: アプリ本体と解析モデルを端末に保存して、2回目以降はネットなしで使えるようにする。
 // 写真は扱わない（写真はネットワークにもキャッシュにも出ない）。
-const CACHE = 'monitor-collage-v1';
-const CORE = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './wasm/vision_wasm_internal.js',
-  './wasm/vision_wasm_internal.wasm',
-  './models/blaze_face_short_range.tflite',
-  './models/face_landmarker.task',
-  './models/pose_landmarker_lite.task',
-  './models/selfie_segmenter.tflite',
-];
-self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
-});
+// 初回はページ側が読み込んだものをそのまま保存するので、二重にダウンロードしない。
+const CACHE = 'monitor-collage-v3';
+const MODEL_HOSTS = ['storage.googleapis.com', 'unpkg.com'];
+
+self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
@@ -23,20 +13,28 @@ self.addEventListener('activate', (e) => {
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
-  // 画面（HTML）は最新を優先、それ以外は保存済みを優先
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  const same = url.origin === location.origin;
+  if (!same && !MODEL_HOSTS.includes(url.hostname)) return;
+  // 画面（HTML）は最新を優先、ネットがなければ保存済み
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req).then((res) => {
-        caches.open(CACHE).then((c) => c.put('./index.html', res.clone()));
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put('./', copy));
         return res;
-      }).catch(() => caches.match('./index.html')),
+      }).catch(() => caches.match('./')),
     );
     return;
   }
+  // それ以外（JS・モデル）は保存済みを優先
   e.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      if (res.ok) caches.open(CACHE).then((c) => c.put(req, res.clone()));
+    caches.match(req.url).then((hit) => hit || fetch(req).then((res) => {
+      if (res.ok || res.type === 'opaque') {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req.url, copy));
+      }
       return res;
     })),
   );

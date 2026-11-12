@@ -1,5 +1,5 @@
 import './style.css';
-import { analyze, loadModels, type Ellipse } from './detect';
+import { analyze, loadModels, type Ellipse, type ModelSource } from './detect';
 import {
   guides,
   KINDS,
@@ -24,9 +24,10 @@ let blurAll = settings.blurDefault;
 let modelsState: 'loading' | 'ready' | 'error' = 'loading';
 
 const modelsReady = loadModels(BASE)
-  .then(() => {
+  .then((src) => {
     modelsState = 'ready';
     if (currentScreen === 'home') showHome();
+    if (src) saveForOffline(src);
   })
   .catch((e) => {
     console.error(e);
@@ -73,13 +74,33 @@ async function loadPhoto(file: File): Promise<HTMLCanvasElement> {
   }
 }
 
+/**
+ * 写真を1枚選ぶ。
+ * iOS Safari では、画面に置いていない <input> は写真選択中に破棄されることがあり、
+ * 選んでも何も起きない（ときどき読み込めない）原因になる。必ず画面に置いてから開く。
+ */
+let picker: HTMLInputElement | null = null;
 function pickFile(): Promise<File | null> {
   return new Promise((resolve) => {
+    picker?.remove();
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = () => resolve(input.files?.[0] ?? null);
-    input.oncancel = () => resolve(null);
+    input.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;width:1px;height:1px';
+    document.body.append(input);
+    picker = input;
+    let done = false;
+    const finish = (f: File | null) => {
+      if (done) return;
+      done = true;
+      resolve(f);
+      setTimeout(() => {
+        input.remove();
+        if (picker === input) picker = null;
+      }, 0);
+    };
+    input.addEventListener('change', () => finish(input.files?.[0] ?? null));
+    input.addEventListener('cancel', () => finish(null));
     input.click();
   });
 }
@@ -514,6 +535,31 @@ function showSettings() {
 }
 
 showHome();
+
+/**
+ * 初回に読み込んだアプリ本体とモデルを、オフライン用に保存する。
+ * 直前に読み込んだばかりなので、通常はブラウザのキャッシュから取り出され、再ダウンロードにはならない。
+ */
+async function saveForOffline(src: ModelSource) {
+  if (!import.meta.env.PROD || !('caches' in window)) return;
+  try {
+    const cache = await caches.open('monitor-collage-v3');
+    const urls = [
+      new URL(BASE, location.href).href,
+      ...[...document.querySelectorAll<HTMLScriptElement | HTMLLinkElement>('script[src], link[rel=stylesheet], link[rel=manifest]')].map(
+        (el) => (el as HTMLScriptElement).src || (el as HTMLLinkElement).href,
+      ),
+      `${src.wasm}/vision_wasm_internal.js`,
+      `${src.wasm}/vision_wasm_internal.wasm`,
+      ...Object.values(src.model),
+    ].map((u) => new URL(u, location.href).href);
+    for (const u of urls) {
+      if (!(await cache.match(u))) await cache.add(u).catch(() => undefined);
+    }
+  } catch {
+    /* 保存できなくても動作には影響しない */
+  }
+}
 
 // オフライン対応（本番のみ）
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
